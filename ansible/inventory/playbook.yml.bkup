@@ -1,0 +1,609 @@
+---
+- name: Core SRX
+  hosts: srx550
+  gather_facts: no
+
+  collections:
+  - junipernetworks.junos
+
+  tasks:
+  - name: Unprotect/Interfaces
+    junipernetworks.junos.junos_command:
+      commands:
+      - unprotect interfaces
+    tags:
+    - interfaces
+
+  - name: Unprotect/System
+    junipernetworks.junos.junos_command:
+      commands:
+      - unprotect access
+      - unprotect chassis
+      - unprotect forwarding-options
+      - unprotect protocols
+      - unprotect system host-name
+      - unprotect system license
+      - unprotect system login
+      - unprotect system max-configurations-on-flash
+      - unprotect system root-authentication
+      - unprotect system services
+      - unprotect system syslog
+    tags: 
+    - system
+
+  - name: Unprotect/Security
+    junipernetworks.junos.junos_command:
+      commands:
+      - unprotect security
+      - unprotect security log
+    tags:
+    - security
+
+  - name: Delete/Chassis/Auto-Image-Upgrade
+    junipernetworks.junos.junos_command:
+      commands:
+      - delete chassis auto-image-upgrade
+    tags:
+    - chassis
+
+  - name: Delete/Interfaces
+    junipernetworks.junos.junos_command:
+      commands:
+      - wildcard range delete interfaces ge-0/[0-2]/[0-47]
+      - wildcard range delete interfaces xe-0/[0-2]/[0-47]
+      - wildcard range delete interfaces et-0/[0-2]/[0-47]
+    tags:
+    - interfaces
+
+  - name: Delete/Interfaces/PoE
+    junipernetworks.junos.junos_command:
+      commands:
+      - delete protocols rstp interface all
+    tags:
+    - interfaces
+
+  - name: Delete/Security
+    junipernetworks.junos.junos_command:
+      commands:
+      - delete security policies
+      - delete security nat
+      - delete security zones
+    tags:
+    - security
+
+  - name: Disable/Interfaces
+    junipernetworks.junos.junos_command:
+      commands:
+      - wildcard range set interfaces ge-0/0/[0-15] disable
+    tags:
+    - intefaces
+
+  - name: Set/System/Console
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system ports auxiliary disable
+      - set system ports auxiliary insecure
+      - set system ports console log-out-on-disconnect
+      - set system ports console type vt100
+    tags: 
+    - console
+    - system
+
+  - name: Set/System/Login
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system login password minimum-length 15
+      - set system login password minimum-upper-cases 1
+      - set system login password minimum-lower-cases 1
+      - set system login password minimum-numerics 1
+      - set system login password minimum-punctuations 1
+      - set system login retry-options tries-before-disconnect 3
+      - set system login retry-options lockout-period 15
+
+      - set system login class ADMIN idle-timeout 10 permissions admin-control
+
+    tags: 
+    - login
+    - system
+
+  - name: Set/System/Login/Class/Permissions
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system login class "{{ item.name }}" permissions "{{ item.permissions }}"
+    tags: 
+    - login
+    - system
+    when: 
+    - "{{ item.enable }}"
+    - "{{ item.permissions }}" != None
+    with_items: "{{ system.login.class }}"
+
+  - name: Set/System/Login/Class/Allow-Configurations
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system login class "{{ item.0.name }}" allow-configuration "("{{ item.1 }}")""
+    loop: "{{ system.login.class|subelements('allow_configurations') }}"
+    loop_control:
+        label: "{{ item.0.name }}"
+    tags: 
+    - login
+    - system
+    when: 
+    - "{{ item.0.enable }}"
+    - "{{ item.1 }} != None
+
+  - name: Set/System/Login/Class/Deny-Configurations
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system login class "{{ item.0.name }}" deny-configuration "("{{ item.1 }}")""
+    loop: "{{ system.login.class|subelements('deny_configurations') }}"
+    loop_control:
+        label: "{{ item.0.name }}"
+    tags: 
+    - login
+    - system
+    when: 
+    - "{{ item.0.enable }}"
+    - "{{ item.1 }} != None
+
+  - name: Set/System/Login/Class/Deny-Commands
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system login class "{{ item.0.name }}" deny-commands "("{{ item.1 }}")""
+    loop: "{{ system.login.class|subelements('deny_commands') }}"
+    loop_control:
+        label: "{{ item.0.name }}"
+    tags: 
+    - login
+    - system
+    when: 
+    - "{{ item.0.enable }}"
+    - "{{ item.0.deny_commands }} != None
+
+  - name: Set/System/Time-Zone
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system time-zone {{ system.time_zone }}
+    tags: system
+
+  - name: Set/System/Hostname
+    junipernetworks.junos.junos_hostname:
+      config:
+        hostname: "{{ system.host_name }}"
+    tags: 
+    - system
+
+  - name: Set/Protocols/L2-Learning
+    junipernetworks.junos.junos_command:
+      commands:
+      - set protocols l2-learning global-mode transparent-bridge
+    tags:
+    - intefaces
+
+  - name: Set/VLAN-Tagging
+    junipernetworks.junos.junos_command:
+      commands:
+      - set interface "{{ item.name }}" vlan-tagging
+    with_items: "{{ l2_interfaces }}"
+    tags:
+    - intefaces
+
+  - name: Set/Interfaces/L2
+    junipernetworks.junos.junos_command:
+      commands:
+      - delete interface "{{ item.name }}" disable
+      - set interface "{{ item.name }}" mtu "{{ item.mtu }}"
+      - set interface "{{ item.name }}" unit "{{ item.vlan }}" vlan-id "{{ item.vlan }}" family inet address "{{ item.cidr }}"
+    with_items: "{{ l2_interfaces }}"
+    tags:
+    - interfaces
+
+  - name: Set/Interfaces/L3
+    junipernetworks.junos.junos_command:
+      commands:
+      - delete interface "{{ item.name }}" disable
+      - set interface "{{ item.name }}" mtu "{{ item.mtu }}"
+      - set interface "{{ item.name }}" unit "{{ item.vlan }}" vlan-id "{{ item.unit }}" family inet address "{{ item.cidr }}"
+    with_items: "{{ l3_interfaces }}"
+    tags:
+    - interfaces
+
+  - name: Set/Interfaces/OOBM
+    junipernetworks.junos.junos_command:
+      commands:
+      - set interface "{{ item.name }}" mtu "{{ item.mtu }}"
+      - set interface "{{ item.name }}" family inet address "{{ item.cidr }}"
+    with_items: "{{ oobm_interfaces }}"
+    tags:
+    - interfaces
+
+  - name: Set/SSH
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system services ssh
+      - set system services ssh protocol-version v2
+      - set system services ssh client-alive-count-max 1
+      - set system services ssh client-alive-interval 600
+      - set system services ssh macs [hmac-sha2-256 hmac-sha2-512]
+      - set system services ssh ciphers aes128-cbc
+      - set system services ssh root-login deny 
+    tags:
+    - ssh
+    - system
+
+  - name: Set/Routes/Static
+    junipernetworks.junos.junos_static_routes:
+      config:
+      - address_families:
+        - afi: "{{ item.ip_version }}"
+          routes:
+          - dest: "{{ item.destination }}"
+            next_hop:
+            - forward_router_address: "{{ item.router}}"
+    with_items: "{{ static_routes }}"
+    tags:
+    - route
+
+  - name: Set/Security/Login
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system login class superuser-local idle-timeout 10 permissions all
+    tags:
+    - security
+
+  - name: Set/Security/Zone
+    junipernetworks.junos.junos_config:
+      lines:
+      - set security zones security-zone "{{ item.name }}" tcp-rst
+    with_items: "{{ security_zones }}"
+    tags:
+    - security
+
+  - name: Set/Security/Zones/L2
+    junipernetworks.junos.junos_config:
+      lines:
+      - set security zones security-zone "{{ item.name }}" tcp-rst
+    with_items: "{{ l2_interfaces }}"
+    tags:
+    - interfaces
+
+  - name: Set/Security/Zones/L2/Services
+    junipernetworks.junos.junos_config:
+      lines:
+      - set security zones security-zone "{{ item.0.security_zone }}" interfaces "{{ item.0.name }}"."{{ item.0.vlan }}" host-inbound-traffic system-services "{{ item.1 }}"
+    loop: "{{ l2_interfaces|subelements('services') }}"
+    loop_control:
+        label: "{{ item.0.name }}"
+    tags:
+    - interfaces
+
+  - name: Set/Security/Zones/L3
+    junipernetworks.junos.junos_config:
+      lines:
+      - set security zones security-zone "{{ item.name }}" tcp-rst
+    with_items: "{{ l3_interfaces }}"
+    tags:
+    - interfaces
+
+  - name: Set/Security/Zones/L3/Services
+    junipernetworks.junos.junos_config:
+      lines:
+      - set security zones security-zone "{{ item.0.security_zone }}" interfaces "{{ item.0.name }}"."{{ item.0.unit }}" host-inbound-traffic system-services "{{ item.1 }}"
+    loop: "{{ l3_interfaces|subelements('services') }}"
+    loop_control:
+        label: "{{ item.0.name }}"
+    tags:
+    - interfaces
+    when:
+    - "{{ item.1 }} != None"
+
+  - name: Set/Security/NAT/Source
+    junipernetworks.junos.junos_command:
+      commands:
+      - set security nat source rule-set users_to_wan from zone "{{ item.security_zone }}"
+      - set security nat source rule-set users_to_wan to zone red_wan
+      - set security nat source rule-set users_to_wan rule snat_pat match source-address "{{ item.cidr }}"
+      - set security nat source rule-set users_to_wan rule snat_pat match destination-address 0.0.0.0/0
+      - set security nat source rule-set users_to_wan rule snat_pat then source-nat interface
+    tags:
+    - nat
+    when: "{{ item.internet }}"
+    with_items: "{{ l2_interfaces }}"
+
+  - name: Set/SNMP/V3/read-only
+    junipernetworks.junos.junos_command:
+      commands:
+      - set snmp v3 usm local-engine user "{{ snmp.v3.ro.user }}" authentication-sha authentication-password "{{ snmp.v3.ro.auth }}"
+      - set snmp v3 usm local-engine user "{{ snmp.v3.ro.user }}" privacy-aes128 privacy-password "{{ snmp.v3.ro.priv }}"
+      - set snmp v3 vacm security-to-group security-model usm security-name "{{ snmp.v3.ro.user }}" group readonly
+      - set snmp v3 vacm access group readonly default-context-prefix security-model usm security-level privacy read-view ro
+      - set snmp view ro oid 1 include
+      - set snmp engine-id local "{{ oobm_interfaces[0].address }}"
+      - set snmp view ro oid 1 include
+    tags:
+    - syslog
+    when: "{{ snmp.v3.ro.enable }}"
+
+  - name: Set/System/Syslog
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system syslog host "{{ system.syslog.address }}" any any
+      - set system syslog host "{{ system.syslog.address }}" any info
+      - set system syslog source-address "{{ oobm_interfaces[0].address }}"
+    tags:
+    - syslog
+    when: "{{ system.syslog.enable }}"
+
+  - name: Protect/Interfaces
+    junipernetworks.junos.junos_command:
+      commands:
+      - protect interfaces
+    tags:
+    - interfaces
+
+  - name: Protect/Security
+    junipernetworks.junos.junos_command:
+      commands:
+      - protect security
+      - protect security log
+    tags:
+    - security
+
+  - name: Protect/System
+    junipernetworks.junos.junos_command:
+      commands:
+      - protect access
+      - protect chassis
+      - protect forwarding-options
+      - protect protocols
+      - protect system host-name
+      - protect system license
+      - protect system login
+      - protect system max-configurations-on-flash
+      - protect system root-authentication
+      - protect system services
+      - protect system syslog
+    tags: 
+    - system
+
+---
+- name: Distro EX
+  hosts: ex4300
+  gather_facts: no
+
+  collections:
+  - junipernetworks.junos
+
+  tasks:
+  - name: Unprotect/Interfaces
+    junipernetworks.junos.junos_command:
+      commands:
+      - unprotect interfaces
+    tags:
+    - interfaces
+
+  - name: Unprotect/System
+    junipernetworks.junos.junos_command:
+      commands:
+      - unprotect access
+      - unprotect chassis
+      - unprotect forwarding-options
+      - unprotect protocols
+      - unprotect system host-name
+      - unprotect system license
+      - unprotect system login
+      - unprotect system max-configurations-on-flash
+      - unprotect system root-authentication
+      - unprotect system services
+      - unprotect system syslog
+    tags: 
+    - system
+
+  - name: Unprotect/Security
+    junipernetworks.junos.junos_command:
+      commands:
+      - unprotect security
+      - unprotect security log
+    tags:
+    - security
+
+  - name: Unprotect/VLANS
+    junipernetworks.junos.junos_command:
+      commands:
+      - unprotect vlans
+    tags:
+    - interfaces
+
+  - name: Delete/Chassis/Auto-Image-Upgrade
+    junipernetworks.junos.junos_command:
+      commands:
+      - delete chassis auto-image-upgrade
+    tags:
+    - chassis
+
+  - name: Delete/Interfaces
+    junipernetworks.junos.junos_command:
+      commands:
+      - wildcard range delete interfaces ge-0/[0-7]/[0-47]
+      - wildcard range delete interfaces et-1/[0-7]/[0-4]
+      - wildcard range delete interfaces xe-2/[0-7]/[0-4]
+    tags:
+    - interfaces
+
+  - name: Delete/Security
+    junipernetworks.junos.junos_command:
+      commands:
+      - delete security policies
+      - delete security nat
+      - delete security zones
+    tags:
+    - security
+
+  - name: Delete/VLANS
+    junipernetworks.junos.junos_command:
+      commands:
+      - delete vlans
+    tags:
+    - vlans
+
+  - name: Disable/Interfaces
+    junipernetworks.junos.junos_command:
+      commands:
+      - wildcard range set interfaces ge-0/[0-7]/[0-15] disable
+    tags:
+    - intefaces
+
+  - name: Disable/Interfaces/PoE
+    junipernetworks.junos.junos_command:
+      commands:
+      - wildcard range delete poe interface ge-0/[0-7]/[0-47] disable
+    tags:
+    - interfaces
+    - poe
+
+  - name: Set/Firewall
+    junipernetworks.junos.junos_command:
+      commands:
+      - set firewall family inet filter local_acl term terminal_access from protocol tcp
+      - set firewall family inet filter local_acl term terminal_access from destination-port ssh
+      - set firewall family inet filter local_acl term terminal_access then log
+      - set firewall family inet filter local_acl term terminal_access then accept
+      - set firewall family inet filter local_acl term terminal_access_denied from protocol tcp
+      - set firewall family inet filter local_acl term terminal_access_denied from destination-port ssh
+      - set firewall family inet filter local_acl term terminal_access_denied from destination-port telnet
+      - set firewall family inet filter local_acl term terminal_access_denied then log
+      - set firewall family inet filter local_acl term terminal_access_denied then reject
+      - set firewall family inet filter local_acl term default-term then accept
+      - set interfaces irb."{{ item.id }}" family inet filter input local_acl
+    tags:
+    - firwall
+    - security
+    when: 
+    - "{{ item.enable }}"
+    - "{{ item.management }}"
+    with_items: "{{ vlans }}"
+
+  - name: Set/Interfaces/OOBM
+    junipernetworks.junos.junos_command:
+      commands:
+      - set interface "{{ item.name }}" mtu "{{ item.mtu }}"
+      - set interfaces irb unit "{{ item.id }}" family inet address "{{ item.address }}"/"{{ item.prefix }}"
+    tags:
+    - interfaces
+    when:
+    - "{{ item.address }}"  !=  None
+    - "{{ item.enable }}"
+    - "{{ item.mtu }}"      >   0
+    - "{{ item.name }}"     !=  None
+    - "{{ item.prefix }}"   >=  0
+    - "{{ item.unit }}"     >=  0
+    with_items: "{{ oobm }}"
+
+  - name: Set/Interfaces/VLAN
+    junipernetworks.junos.junos_command:
+      commands:
+      - set vlans "{{ item.name }}" vlan-id "{{ item.id }}"
+      - set vlan native vlan-id "{{ '.vlans[] | select( .name == \"native\" ).id' }}"
+    tags:
+    - interfaces
+    - vlan
+    when:
+    - "{{ item.address }}"  !=  None
+    - "{{ item.enable }}"
+    - "{{ item.mtu }}"      >   0
+    - "{{ item.name }}"     !=  None
+    - "{{ item.prefix }}"   >=  0
+    - "{{ item.unit }}"     >=  0
+    - "{{ '.vlans[] | select( .name == \"native\" ).id' }}" != None
+    with_items: "{{ vlans }}"
+
+  - name: Set/SSH
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system services ssh
+      - set system services ssh protocol-version v2
+      - set system services ssh client-alive-count-max 1
+      - set system services ssh client-alive-interval 600
+      - set system services ssh macs [hmac-sha2-256 hmac-sha2-512]
+      - set system services ssh ciphers aes128-cbc
+      - set system services ssh root-login deny 
+    tags:
+    - ssh
+    - system
+
+  - name: Set/Routes/Static
+    junipernetworks.junos.junos_static_routes:
+      config:
+      - address_families:
+        - afi: "{{ item.ip_version }}"
+          routes:
+          - dest: "{{ item.destination }}"
+            next_hop:
+            - forward_router_address: "{{ item.router}}"
+    with_items: "{{ static_routes }}"
+    tags:
+    - route
+
+  - name: Set/SNMP/V3/read-only
+    junipernetworks.junos.junos_command:
+      commands:
+      - set snmp v3 usm local-engine user "{{ snmp.v3.ro.user }}" authentication-sha authentication-password "{{ snmp.v3.ro.auth }}"
+      - set snmp v3 usm local-engine user "{{ snmp.v3.ro.user }}" privacy-aes128 privacy-password "{{ snmp.v3.ro.priv }}"
+      - set snmp v3 vacm security-to-group security-model usm security-name "{{ snmp.v3.ro.user }}" group readonly
+      - set snmp v3 vacm access group readonly default-context-prefix security-model usm security-level privacy read-view ro
+      - set snmp view ro oid 1 include
+      - set snmp engine-id local "{{ oobm_interfaces[0].address }}"
+      - set snmp view ro oid 1 include
+    tags:
+    - syslog
+    when: "{{ snmp.v3.ro.enable }}"
+
+  - name: Set/System/Syslog
+    junipernetworks.junos.junos_command:
+      commands:
+      - set system syslog host "{{ system.syslog.address }}" any any
+      - set system syslog host "{{ system.syslog.address }}" any info
+      - set system syslog source-address "{{ oobm_interfaces[0].address }}"
+    tags:
+    - syslog
+    when: "{{ system.syslog.enable }}"
+
+  - name: Protect/Interfaces
+    junipernetworks.junos.junos_command:
+      commands:
+      - protect interfaces
+    tags:
+    - interfaces
+
+  - name: Protect/Security
+    junipernetworks.junos.junos_command:
+      commands:
+      - protect security
+      - protect security log
+    tags:
+    - security
+
+  - name: Protect/System
+    junipernetworks.junos.junos_command:
+      commands:
+      - protect access
+      - protect chassis
+      - protect forwarding-options
+      - protect protocols
+      - protect system host-name
+      - protect system license
+      - protect system login
+      - protect system max-configurations-on-flash
+      - protect system root-authentication
+      - protect system services
+      - protect system syslog
+    tags: 
+    - system
+
+  - name: Protect/VLANS
+    junipernetworks.junos.junos_command:
+      commands:
+      - protect vlans
+    tags: 
+    - system
+    - vlans

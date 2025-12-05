@@ -1,0 +1,19 @@
+{
+ "interfaces": [
+  {
+    "member": 0,
+    "slot": 0,
+    "port": 0,
+    "interface": 0,
+    "enable": true,
+    "description": "description",
+    "l2": [
+    {
+      "members": [],
+      "type": "access"
+    }
+    ],
+    "l3": []
+  }
+]
+}

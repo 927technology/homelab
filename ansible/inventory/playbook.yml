@@ -1,0 +1,15 @@
+---
+- name: Core SRX
+  hosts: srx550
+  gather_facts: no
+
+  collections:
+  - junipernetworks.junos
+
+  tasks:
+  - name: Set/System/Hostname
+    junipernetworks.junos.junos_hostname:
+      config:
+        hostname: "{{ system.host_name }}"
+    tags: 
+    - system

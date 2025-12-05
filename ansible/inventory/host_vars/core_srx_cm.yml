@@ -1,0 +1,144 @@
+---
+oobm_interfaces:
+  - address: 10.1.254.11
+    description: "out of band"
+    mtu: 1500
+    name: fxp0
+    prefix: 24
+    security_zone: wht_mgmt_net
+    services:
+    unit: 0
+
+l3_interfaces:
+  - cidr: 192.168.1.150/24
+    description: "red_wan"
+    mtu: 1500
+    name: ge-0/0/0
+    security_zone: red_wan
+    services:
+    unit: 0
+
+l2_interfaces:
+  - name: ge-0/0/1
+    cidr: 10.1.0.0/24
+    description: "wht_acc_svr"
+    internet: false
+    security_zone: wht_acc_svr
+    services:
+    vlan: 100
+
+  - name: ge-0/0/1
+    cidr: 10.1.1.0/24
+    description: "wht_acc_usr"
+    internet: false
+    security_zone: wht_acc_usr
+    services:
+    vlan: 101
+
+  - name: ge-0/0/1
+    cidr: 10.1.252.0/24
+    description: "wht_mgmt_ce"
+    internet: false
+    security_zone: wht_mgmt_ce
+    services:
+    vlan: 197
+
+  - name: ge-0/0/1
+    cidr: 10.1.253.0/24
+    description: "wht_mgmt_hv"
+    internet: false
+    services:
+    vlan: 198
+
+  - name: ge-0/0/1
+    cidr: 10.1.254.0/24
+    description: "wht_mgmt_net"
+    internet: false
+    security_zone: wht_mgmt_net
+    services:
+    - ssh
+    vlan: 199
+
+  - name: ge-0/0/1
+    cidr: 10.2.0.0/24
+    description: "gry_acc_svr"
+    internet: false
+    security_zone: gry_acc_svr
+    services:
+    vlan: 200
+
+  - name: ge-0/0/1
+    cidr: 10.3.0.0/24
+    description: "blk_acc_svr"
+    internet: true
+    security_zone: blk_acc_svr
+    services:
+    vlan: 300
+
+policies:
+  - from_zone: server
+    to_zone: users
+    default_permit: match
+    source_address: any
+
+static_routes:
+  - name: default
+    destination: 0.0.0.0/0
+    ip_version: ipv4
+    router: 192.168.1.1
+
+security_zones:
+  - name: red_wan
+  - name: wht_mgmt_hv
+  - name: wht_mgmt_ce
+  - name: wht_mgmt_net
+  - name: wht_acc_svr
+  - name: gry_acc_svr
+  - name: blk_acc_svr
+
+snmp:
+  v3:
+    ro:
+    - name: v3_ro
+      auth: "password"
+      enable: true
+      user: "snmpuser"
+      priv: "password"
+
+system:
+  dns:
+    - address: 0.0.0.0
+      enable: false
+  host_name: core_srx_cm
+  login:
+    class:
+    - name: AUDITOR
+      allow_configuration: 
+      - "system syslog"
+      deny_commands: 
+      deny_configuration:
+      enable: true
+      permissions: [ configure view-configuration ]
+
+    - name: JR_ENGINEER
+      allow_configuration: 
+      - "system syslog"
+      deny_commands: 
+      - "request system software"
+      - "file delete"
+      deny_configuration: 
+      - "system syslog"
+      enable: true
+      permissions: [ all ]
+
+    - name: SR_ENGINEER
+      allow_configuration: 
+      deny_commands: 
+      deny_configuration: 
+      - "system syslog"
+      enable: true
+      permissions: [ all ]
+  syslog:
+    address: 0.0.0.0
+    enable: false  
+  time_zone: utc

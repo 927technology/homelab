@@ -1,0 +1,9 @@
+- name: Core SRX
+  hosts: srx
+  gather_facts: no
+
+  tasks:
+  - name: Retrieve Junos OS version
+    junipernetworks.junos.junos_command:
+      commands: show version
+    when: ansible_network_os == 'junipernetworks.junos.junos'

@@ -1,0 +1,53 @@
+l2_interfaces:
+  - name: ge-0/0/1
+    description: "core_srx"
+    enable: true
+    internet: false
+    security_zone: wht_mgmt_net
+    services:
+    vlan: 199
+
+l3_interfaces:
+
+vlans:
+  - name: "wht_acc_svr"
+    enable: true
+    id: 101
+    irb: 
+    management: false
+
+  - name: "wht_acc_usr"
+    enable: true
+    id: 102
+    irb: 
+    management: false
+
+  - name: "wht_mgmt_ce"
+    enable: true
+    id: 197
+    irb: 
+    management: false
+
+  - name: "wht_mgmt_hv"
+    enable: true
+    id: 198
+    irb: 
+    management: false
+
+  - name: "wht_mgmt_net"
+    enable: true
+    id: 199
+    irb: 10.1.254.21
+    management: true
+
+  - name: "native"
+    enable: true
+    id: 998
+    irb: 
+    management: false  
+  
+  - name: "blackhole"
+    enable: true
+    id: 999
+    irb: 
+    management: false
