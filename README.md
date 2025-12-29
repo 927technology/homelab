@@ -34,7 +34,7 @@ Accessing the hosts in the lab requires the bastion to allow proxyjump and a pro
 
 ## IP Addresses
 
-I use publically known prvate network addresses.  These addresses are set aside for use in your project and do not impact anyone else when you use them.  They also give ZERO information about some attack surface someone from a forreign nation could use to compromise my home.  To do that they would have to find my public address which I do not annotate.  In fact I have no clue what it is, as I have not checked.
+I use publically known private network addresses.  These addresses are set aside for use in your project and do not impact anyone else when you use them.  They also give ZERO information about some attack surface someone from a forreign nation could use to compromise my home.  To do that they would have to find my public address which I do not annotate.  In fact I have no clue what it is, as I have not checked.
 
 |Network|Prefix|
 |:-|:-|
