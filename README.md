@@ -24,7 +24,7 @@ The lab sits as an enclave in my home.  This allows me to treat it as a private 
 
 ## Bastion
 
-In lieu of exposing all the devices in the lab to my home network, I created a bastion host for and allow for SSH via that.  The bastion sits in its own VLAN and Subnet to allow for proper isolation.  The host is Rocky Linux 9, but I will be changing that over to Oracle Linux 9 at some point.  Network security is very lax at this point as the implementation is pretty much in the building phase.
+In lieu of exposing all the devices in the lab to my home network, I created a bastion host and allow SSH via that.  The bastion sits in its own VLAN and Subnet to allow for proper isolation.  The host is Rocky Linux 9, but I will be changing that over to Oracle Linux 9 at some point.  Network security is very lax at this point as the implementation is pretty much in the building phase.
 
 Accessing the hosts in the lab requires the bastion to allow proxyjump and a proper SSH [Config](./configurations/ssh.conf).  I am using self generated SSH keys currently.  Copy the pub key to the device then use the priv key to access.  The bastion forwards your credentials down the line.
 
