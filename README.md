@@ -30,6 +30,20 @@ Accessing the hosts in the lab requires the bastion to allow proxyjump and a pro
 
 
 
+## GNS3
+
+* Version: 2.2.50
+* Processors: 4
+* Memory: 8GB
+* Network Interfaces: 2 | [Configuration](./configurations/90_gns3vm_static_netcfg.yaml)
+
+  * Network Device (net0): vmbr0.2101
+  * Network Device (net1): vmbr0
+* Proxmox Configuration
+  
+  * CPU Type: Host
+  * Extra CPU Flags: +nested-virt
+
 # DISCLAIMERS - Pennies for the Trolls
 
 ## IP Addresses

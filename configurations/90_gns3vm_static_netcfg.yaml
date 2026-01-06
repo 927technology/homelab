@@ -1,0 +1,32 @@
+# This file describes the network interfaces available on your system
+# For more information, see netplan(5).
+
+# Uncomment the following lines if you want to manually configure your network
+
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: no
+      addresses:
+        - 10.1.1.16/24
+      gateway4: 10.1.1.1
+      nameservers:
+          addresses: [192.168.1.1, 8.8.8.8]
+    eth1:
+      dhcp4: false
+      dhcp6: false
+      link-local: []
+      ignore-carrier: true
+
+  vlans:
+    vlan200:
+      accept-ra: no
+      id: 200
+      link: eth1
+
+    vlan301:
+      accept-ra: no
+      id: 301
+      link: eth1
